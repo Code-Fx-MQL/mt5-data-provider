@@ -111,6 +111,17 @@ mt5-data-provider/
 - **Stub:** pode correr em Linux/Docker para ambientes de teste
 - Expor atrás de reverse proxy (HTTPS) e restringir por API key
 
+### Harnesses na nuvem (MT5 local → API remota)
+
+O MT5 fica no **Windows local**; harnesses Linux/EasyPanel consomem só HTTP:
+
+```env
+MT5_PROVIDER_URL=https://mt5.seudominio.com
+MT5_PROVIDER_API_KEY=sua-chave
+```
+
+Guia completo: **[docs/DEPLOY-NUVEM.md](docs/DEPLOY-NUVEM.md)** (Cloudflare Tunnel, Tailscale, VPS Windows).
+
 ## Repositório
 
 https://github.com/Code-Fx-MQL/mt5-data-provider
