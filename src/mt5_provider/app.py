@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
 import structlog
@@ -21,13 +22,30 @@ from mt5_provider.provider import MT5DataProvider
 
 logger = structlog.get_logger(__name__)
 
+_provider: MT5DataProvider | None = None
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    global _provider
+    settings = get_settings()
+    _provider = MT5DataProvider()
+    if settings.mt5_provider_mode == "live":
+        try:
+            _provider._backend.connect()  # noqa: SLF001
+            logger.info("mt5_live_startup_ok")
+        except MT5ConnectionError as exc:
+            logger.warning("mt5_live_startup_failed", error=str(exc))
+    yield
+    _provider = None
+
+
 app = FastAPI(
     title="MT5 Data Provider",
     description="Provedor de dados proprietário MT5 — API compatível CCXT para projetos Harness",
     version=__version__,
+    lifespan=lifespan,
 )
-
-_provider: MT5DataProvider | None = None
 
 
 def get_provider() -> MT5DataProvider:
