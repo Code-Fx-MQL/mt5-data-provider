@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mt5-data-provider"
+version = "1.0.0"
+description = "Provedor de dados MT5 com API REST compatível CCXT para projetos Harness"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic-settings>=2.6.0",
+    "httpx>=0.28.0",
+    "structlog>=24.4.0",
+]
+
+[project.optional-dependencies]
+mt5 = ["MetaTrader5>=5.0.45", "pandas>=2.2.0"]
+dev = ["pytest>=8.3.0", "pytest-asyncio>=0.24.0", "httpx>=0.28.0"]
+
+[project.scripts]
+mt5-provider = "mt5_provider.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

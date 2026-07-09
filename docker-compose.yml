@@ -1,0 +1,18 @@
+# Modo stub — Linux/Docker (sem MT5 real)
+# Para live MT5, execute nativamente no Windows com terminal MT5.
+
+services:
+  mt5-provider:
+    build: .
+    ports:
+      - "${MT5_PORT:-8000}:8000"
+    environment:
+      MT5_PROVIDER_MODE: stub
+      MT5_API_KEYS: ${MT5_API_KEYS:-}
+      MT5_SYMBOLS: ${MT5_SYMBOLS:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
