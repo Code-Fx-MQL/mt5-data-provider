@@ -111,6 +111,10 @@ mt5-data-provider/
 - **Stub:** pode correr em Linux/Docker para ambientes de teste
 - Expor atrás de reverse proxy (HTTPS) e restringir por API key
 
+## Repositório
+
+https://github.com/Code-Fx-MQL/mt5-data-provider
+
 ## Licença
 
 Uso proprietário — projetos Harness FullScope Trade.
