@@ -1,6 +1,10 @@
 # Integração com projetos Harness
 
+Repositório: https://github.com/Code-Fx-MQL/mt5-data-provider
+
 Este serviço é **independente** dos harnesses. Cada harness consome a API via HTTP.
+
+**CRT Agent** já integrado em `feat(data): integração MT5 Data Provider` — `CRT_DATA_SOURCE=mt5`.
 
 ## CRT Agent (exemplo)
 
