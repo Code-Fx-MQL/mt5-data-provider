@@ -29,22 +29,35 @@ class LiveMT5Backend:
                 "Pacote MetaTrader5 não instalado. Use: pip install mt5-data-provider[mt5]"
             ) from exc
 
-        kwargs: dict[str, Any] = {}
-        if self.settings.mt5_path:
-            kwargs["path"] = self.settings.mt5_path
+        creds: dict[str, Any] = {}
         if self.settings.mt5_login:
-            kwargs["login"] = self.settings.mt5_login
+            creds["login"] = self.settings.mt5_login
         if self.settings.mt5_password:
-            kwargs["password"] = self.settings.mt5_password
+            creds["password"] = self.settings.mt5_password
         if self.settings.mt5_server:
-            kwargs["server"] = self.settings.mt5_server
+            creds["server"] = self.settings.mt5_server
 
-        if not mt5.initialize(**kwargs):
-            code, msg = mt5.last_error()
-            raise MT5ConnectionError(f"Falha ao conectar MT5 ({code}): {msg}")
+        attempts: list[tuple[str, dict[str, Any]]] = [
+            ("attach_running", {}),
+            ("attach_with_creds", creds),
+        ]
+        if self.settings.mt5_path:
+            attempts.append(("spawn_path", {"path": self.settings.mt5_path, **creds}))
 
-        self._connected = True
-        logger.info("mt5_connected", terminal=mt5.terminal_info())
+        last_err: tuple[int, str] = (0, "unknown")
+        for strategy, kwargs in attempts:
+            if not kwargs and strategy != "attach_running":
+                continue
+            if mt5.initialize(**kwargs):
+                self._connected = True
+                logger.info("mt5_connected", strategy=strategy, terminal=mt5.terminal_info())
+                return
+            last_err = mt5.last_error()
+            logger.warning("mt5_connect_attempt_failed", strategy=strategy, error=last_err)
+            mt5.shutdown()
+
+        code, msg = last_err
+        raise MT5ConnectionError(f"Falha ao conectar MT5 ({code}): {msg}")
 
     def _mt5_symbol(self, harness_symbol: str) -> str:
         self.connect()

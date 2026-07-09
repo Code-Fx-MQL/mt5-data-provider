@@ -12,12 +12,14 @@ $python = Join-Path $root ".venv\Scripts\python.exe"
 
 & $pip install -e ".[mt5,dev]" -q
 
-if (-not (Test-Path (Join-Path $root ".env"))) {
-    Copy-Item (Join-Path $root ".env.example") (Join-Path $root ".env")
-    Write-Host "Criado .env a partir de .env.example — configure MT5_PATH e API keys" -ForegroundColor Yellow
+$envFile = Join-Path $root ".env"
+if (-not (Test-Path $envFile)) {
+    Copy-Item (Join-Path $root ".env.example") $envFile
+    Write-Host "Criado .env - configure MT5_PATH e API keys" -ForegroundColor Yellow
 }
 
 $env:MT5_PROVIDER_MODE = "live"
-Write-Host "MT5 Data Provider — modo LIVE" -ForegroundColor Cyan
+Write-Host "MT5 Data Provider - modo LIVE" -ForegroundColor Cyan
 Write-Host "Docs: http://localhost:8000/docs" -ForegroundColor Green
+Set-Location $root
 & $python -m mt5_provider.cli
