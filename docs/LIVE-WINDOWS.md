@@ -52,7 +52,60 @@ MT5_PROVIDER_URL=http://localhost:8000
 MT5_PROVIDER_API_KEY=SUA_CHAVE_SECRETA
 ```
 
-## Serviço Windows (opcional)
+## Watchdog — monitorar e recuperar automaticamente
 
-Use **NSSM** ou Task Scheduler para manter `mt5-provider` ativo após reinício.
-O terminal MT5 deve permanecer conectado na mesma máquina.
+Dois processos precisam estar ativos:
+
+| Processo | Função |
+|----------|--------|
+| `terminal64.exe` | Liga ao broker e fornece dados |
+| `python -m mt5_provider.cli` | API HTTP para os harnesses |
+
+### Verificação manual (sem reiniciar)
+
+```powershell
+.\scripts\watchdog-mt5.ps1 -DryRun
+```
+
+### Uma recuperação agora
+
+```powershell
+.\scripts\watchdog-mt5.ps1
+```
+
+Faz:
+1. Verifica se o terminal em `MT5_PATH` está a correr → se não, abre
+2. Verifica `http://localhost:8000/health` → se falhar, reinicia o provider
+3. Testa ticker (`GBPUSD`) para confirmar dados reais
+4. Regista em `logs/watchdog.log`
+
+### Loop contínuo (terminal aberto)
+
+```powershell
+.\scripts\watchdog-mt5.ps1 -Loop -IntervalSeconds 60
+```
+
+### Tarefa Windows (a cada 2 min, recomendado)
+
+```powershell
+# PowerShell como utilizador normal
+.\scripts\install-watchdog-task.ps1 -IntervalMinutes 2
+```
+
+Depois: `taskschd.msc` → tarefa **MT5-DataProvider-Watchdog**
+
+### O que o watchdog NÃO faz
+
+- Não faz login no broker por ti (precisas de sessão MT5 já autenticada ou credenciais no `.env`)
+- Não substitui firewall/rede — se o broker desconectar, o terminal pode estar aberto mas sem dados
+
+### Logs
+
+```
+mt5-data-provider/logs/watchdog.log
+```
+
+## Serviço Windows (opcional avançado)
+
+Além do watchdog, podes usar **NSSM** para o provider como serviço Windows.
+O terminal MT5 deve permanecer aberto na mesma máquina.
