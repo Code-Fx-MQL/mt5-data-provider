@@ -183,10 +183,32 @@ Se gerou nova API key na migração, atualize também no EasyPanel (`scripts/syn
 
 ## Passo 6 — Desactivar máquina antiga
 
-1. Parar túnel: `Get-Process cloudflared | Stop-Process -Force`
-2. Desactivar tarefas: `Disable-ScheduledTask -TaskName MT5-Cloudflare-Tunnel`
-3. Parar provider na porta 8000
-4. Confirmar que só a **nova** máquina responde em `https://mt5.fullscopetrade.com/health`
+Na máquina **antiga**:
+
+```powershell
+cd C:\Users\Rsantos\mt5-data-provider   # ou caminho antigo
+.\scripts\stop-stack.ps1
+```
+
+Confirme: `cloudflared activos: 0` e `porta 8000 listen: 0`.
+
+---
+
+## Após bootstrap — corrigir `cloudflared nao encontrado`
+
+Se o bootstrap mostrar `cloudflared nao encontrado` na **nova** máquina:
+
+```powershell
+winget install Cloudflare.cloudflared --accept-package-agreements --accept-source-agreements
+# Reinicie o PowerShell
+cd C:\MT5\mt5-data-provider
+.\scripts\watchdog-cloudflare.ps1
+.\scripts\watchdog-cloudflare.ps1 -StatusOnly
+```
+
+Deve mostrar: `publico: OK`.
+
+O aviso `Provider API: mode=auth-fail` no primeiro arranque é **transitório** — se `Dados MT5: OK` aparece, o provider está funcional.
 
 ---
 
