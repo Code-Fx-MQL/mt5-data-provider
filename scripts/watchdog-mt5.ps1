@@ -59,17 +59,32 @@ function Test-TerminalRunning([string]$TerminalPath) {
     return $false
 }
 
-function Start-Terminal([string]$TerminalPath) {
+function Get-Mt5WindowStyle([hashtable]$Env) {
+    $raw = $Env["MT5_START_MINIMIZED"]
+    if ($null -eq $raw -or $raw -eq "") { return "Minimized" }
+    $v = $raw.ToString().Trim().ToLower()
+    if ($v -in @("0", "false", "no", "normal", "visible")) { return "Normal" }
+    return "Minimized"
+}
+
+function Get-TerminalProcesses([string]$TerminalPath) {
+    $procs = @(Get-Process -Name "terminal64" -ErrorAction SilentlyContinue)
+    if (-not $TerminalPath) { return $procs }
+    $norm = $TerminalPath.ToLower()
+    return @($procs | Where-Object { $_.Path -and $_.Path.ToLower() -eq $norm })
+}
+
+function Start-Terminal([string]$TerminalPath, [string]$WindowStyle = "Minimized") {
     if (-not (Test-Path $TerminalPath)) {
         Write-Log "MT5_PATH invalido: $TerminalPath" "ERROR"
         return $false
     }
     if ($DryRun) {
-        Write-Log "[DryRun] Iniciaria terminal: $TerminalPath" "WARN"
+        Write-Log "[DryRun] Iniciaria terminal: $TerminalPath ($WindowStyle)" "WARN"
         return $true
     }
-    Start-Process -FilePath $TerminalPath -WindowStyle Minimized | Out-Null
-    Write-Log "Terminal MT5 iniciado: $TerminalPath"
+    Start-Process -FilePath $TerminalPath -WindowStyle $WindowStyle | Out-Null
+    Write-Log "Terminal MT5 iniciado: $TerminalPath ($WindowStyle)"
     Start-Sleep -Seconds 20
     return (Test-TerminalRunning $TerminalPath)
 }
@@ -173,6 +188,7 @@ function Invoke-WatchdogOnce() {
     $script:Port = if ($env["MT5_PORT"]) { [int]$env["MT5_PORT"] } else { 8000 }
     $script:BaseUrl = "http://127.0.0.1:$($script:Port)"
     $terminalPath = $env["MT5_PATH"]
+    $mt5WindowStyle = Get-Mt5WindowStyle $env
     $script:ApiKey = ($env["MT5_API_KEYS"] -split "," | Select-Object -First 1) -replace "^[^:]+:", ""
 
     Write-Log "=== Watchdog check ==="
@@ -180,7 +196,9 @@ function Invoke-WatchdogOnce() {
     # 1) Terminal MT5
     $terminalUp = Test-TerminalRunning $terminalPath
     if ($terminalUp) {
-        Write-Log "MT5 terminal: OK"
+        $mt5Procs = Get-TerminalProcesses $terminalPath
+        $pidList = ($mt5Procs | ForEach-Object { $_.Id }) -join ","
+        Write-Log "MT5 terminal: OK (PID $pidList, janela=$mt5WindowStyle)"
     }
     else {
         Write-Log "MT5 terminal: OFFLINE" "WARN"
@@ -188,7 +206,7 @@ function Invoke-WatchdogOnce() {
             Write-Log "StatusOnly - terminal nao sera reiniciado" "WARN"
         }
         elseif ($terminalPath) {
-            $terminalUp = Start-Terminal $terminalPath
+            $terminalUp = Start-Terminal $terminalPath $mt5WindowStyle
         }
         else {
             Write-Log "MT5_PATH nao definido - nao consigo reiniciar terminal automaticamente" "ERROR"
