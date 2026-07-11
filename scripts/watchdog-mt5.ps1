@@ -68,7 +68,7 @@ function Start-Terminal([string]$TerminalPath) {
         Write-Log "[DryRun] Iniciaria terminal: $TerminalPath" "WARN"
         return $true
     }
-    Start-Process -FilePath $TerminalPath | Out-Null
+    Start-Process -FilePath $TerminalPath -WindowStyle Minimized | Out-Null
     Write-Log "Terminal MT5 iniciado: $TerminalPath"
     Start-Sleep -Seconds 20
     return (Test-TerminalRunning $TerminalPath)

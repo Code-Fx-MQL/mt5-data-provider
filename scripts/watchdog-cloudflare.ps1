@@ -7,6 +7,7 @@ param(
 $ErrorActionPreference = "Continue"
 $root = Split-Path $PSScriptRoot -Parent
 . (Join-Path $PSScriptRoot "lib\cloudflared-common.ps1")
+. (Join-Path $PSScriptRoot "lib\process-common.ps1")
 
 $logDir = Join-Path $root "logs"
 $logFile = Join-Path $logDir "cloudflared-watchdog.log"
@@ -76,7 +77,7 @@ if ($StatusOnly) {
 if (-not (Test-ProviderListening -Port $meta.LocalPort)) {
     Write-Log "Provider :$($meta.LocalPort) offline - a arrancar via watchdog-mt5" "WARN"
     if (-not $DryRun) {
-        & powershell -NoProfile -File (Join-Path $PSScriptRoot "watchdog-mt5.ps1") | Out-Null
+        Start-HiddenPowerShellScript -ScriptPath (Join-Path $PSScriptRoot "watchdog-mt5.ps1") -Wait
         Start-Sleep -Seconds 5
         if (-not (Test-ProviderListening -Port $meta.LocalPort)) {
             Write-Log "Provider ainda offline em :$($meta.LocalPort) - tunel ficara em 502 ate API subir" "WARN"

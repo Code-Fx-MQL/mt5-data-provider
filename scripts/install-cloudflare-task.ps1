@@ -12,9 +12,10 @@ if (-not (Test-Path $watchdog)) {
     throw "Script nao encontrado: $watchdog"
 }
 
+$psArgs = "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$watchdog`""
 $action = New-ScheduledTaskAction `
     -Execute "powershell.exe" `
-    -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$watchdog`"" `
+    -Argument $psArgs `
     -WorkingDirectory $root
 
 $atLogon = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
