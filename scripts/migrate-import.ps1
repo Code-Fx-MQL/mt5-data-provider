@@ -32,6 +32,13 @@ if (Test-Path $cfSrc) {
         Copy-Item $_.FullName (Join-Path $cfHome $_.Name) -Force
         Write-Host "Importado cloudflared/$($_.Name)" -ForegroundColor Green
     }
+    . (Join-Path $PSScriptRoot "lib\cloudflared-common.ps1")
+    $cfgDest = Join-Path $cfHome "config.yml"
+    if (Test-Path $cfgDest) {
+        if (Repair-CloudflaredConfig -ConfigPath $cfgDest) {
+            Write-Host "config.yml: credentials-file ajustado para $cfHome" -ForegroundColor Green
+        }
+    }
     # Copia tambem para deploy/cloudflare (referencia no repo)
     $deployCf = Join-Path $ProjectRoot "deploy\cloudflare"
     if (-not (Test-Path $deployCf)) { New-Item -ItemType Directory -Path $deployCf | Out-Null }
