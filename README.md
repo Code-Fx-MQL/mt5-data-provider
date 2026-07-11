@@ -54,25 +54,53 @@ mt5-provider
 python -m mt5_provider.cli
 ```
 
-Abrir: http://localhost:8000/docs
+Documentação interativa (dev): http://localhost:8000/docs (`MT5_DOCS_ENABLED=true`)
 
-## Endpoints
+## Documentação
 
-| Método | Path | Descrição |
-|--------|------|-----------|
-| GET | `/health` | Health check |
-| GET | `/v1/config` | Símbolos, timeframes, limites |
-| GET | `/v1/ticker/{symbol}` | Ticker estilo CCXT |
-| GET | `/v1/ohlcv/{symbol}` | OHLCV (`timeframe`, `limit`) |
-| GET | `/v1/ohlcv/{symbol}/multi` | Multi-TF para harness |
-| POST | `/v1/ccxt/fetch_ohlcv` | RPC compatível CCXT |
+| Doc | Conteúdo |
+|-----|----------|
+| **[docs/MIGRACAO-WINDOWS.md](docs/MIGRACAO-WINDOWS.md)** | **Migrar para outro PC Windows** — export, bootstrap, tarefas |
+| **[docs/API.md](docs/API.md)** | Referência completa — auth, endpoints, exemplos curl/Python |
+| **[docs/SECURITY.md](docs/SECURITY.md)** | Checklist produção, variáveis seguras, rotação de keys |
+| **[docs/INTEGRACAO-HARNESS.md](docs/INTEGRACAO-HARNESS.md)** | Ligação CRT Agent / multi-harness |
+| **[docs/DEPLOY-NUVEM.md](docs/DEPLOY-NUVEM.md)** | Cloudflare Tunnel, EasyPanel |
+| **[docs/LIVE-WINDOWS.md](docs/LIVE-WINDOWS.md)** | Modo live + watchdog |
 
-### Exemplo
+### Migrar para nova máquina (resumo)
 
 ```powershell
-curl http://localhost:8000/v1/ohlcv/XAUUSD?timeframe=4h&limit=100
-curl "http://localhost:8000/v1/ohlcv/GBPUSD/multi?timeframes=4h,1h,15m&limit=96" -H "X-API-Key: changeme"
+# Maquina ANTIGA
+.\scripts\migrate-export.ps1
+
+# Maquina NOVA
+winget install Python.Python.3.12 Git.Git Cloudflare.cloudflared
+.\scripts\bootstrap-windows.ps1 -MigrationZip "D:\mt5-migration-....zip" -InstallDeps
 ```
+
+## Endpoints (resumo)
+
+| Método | Path | Auth | Descrição |
+|--------|------|------|-----------|
+| GET | `/health` | Não | Health mínimo `{"status":"ok"}` |
+| GET | `/v1/status` | Sim* | Modo, versão, harness_id |
+| GET | `/v1/config` | Sim* | Símbolos, timeframes, limites |
+| GET | `/v1/ticker/{symbol}` | Sim* | Ticker estilo CCXT |
+| GET | `/v1/ohlcv/{symbol}` | Sim* | OHLCV (`timeframe`, `limit`) |
+| GET | `/v1/ohlcv/{symbol}/multi` | Sim* | Multi-TF para harness |
+| POST | `/v1/ccxt/fetch_ohlcv` | Sim* | RPC compatível CCXT |
+
+\* Quando `MT5_API_KEYS` está configurado.
+
+### Exemplos rápidos
+
+```powershell
+curl http://127.0.0.1:8000/health
+curl -H "X-API-Key: changeme" "http://127.0.0.1:8000/v1/ohlcv/XAUUSD?timeframe=4h&limit=100"
+curl -H "X-API-Key: changeme" "http://127.0.0.1:8000/v1/ohlcv/GBPUSD/multi?timeframes=4h,1h,15m&limit=96"
+```
+
+Ver exemplos completos em **[docs/API.md](docs/API.md)**.
 
 ## Cliente Python (harnesses)
 

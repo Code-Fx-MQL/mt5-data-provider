@@ -26,29 +26,47 @@ Expõe `localhost:8000` sem abrir portas no router.
 
 ### Cloudflare Tunnel (grátis, HTTPS automático)
 
-1. Instalar [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) no Windows
-2. Criar túnel no dashboard Cloudflare Zero Trust
-3. Configurar ingress:
+**Setup automatizado no Windows** (repo `mt5-data-provider`):
+
+```powershell
+cd C:\Users\Rsantos\mt5-data-provider
+
+# 1. Login Cloudflare (abre browser — autorizar fullscopetrade.com)
+cloudflared tunnel login
+
+# 2. Criar tunel + DNS + config
+.\scripts\install-cloudflare-tunnel.ps1
+
+# 3. Tarefa Windows (logon + watchdog a cada 2 min)
+.\scripts\install-cloudflare-task.ps1
+```
+
+Config gerada em `%USERPROFILE%\.cloudflared\config.yml`:
 
 ```yaml
-# config.yml (exemplo)
+tunnel: <tunnel-id>
+credentials-file: C:\Users\Rsantos\.cloudflared\<tunnel-id>.json
 ingress:
-  - hostname: mt5.seudominio.com
-    service: http://localhost:8000
+  - hostname: mt5.fullscopetrade.com
+    service: http://127.0.0.1:8000
   - service: http_status:404
 ```
 
-4. Correr:
+**Produção atual:** `https://mt5.fullscopetrade.com` → `localhost:8000`
+
+Comandos úteis:
 
 ```powershell
-cloudflared tunnel run mt5-provider
+.\scripts\start-tunnel.ps1              # foreground (debug)
+.\scripts\watchdog-cloudflare.ps1       # garantir tunel ativo
+.\scripts\watchdog-cloudflare.ps1 -StatusOnly
 ```
 
-5. No harness na nuvem (`.env` EasyPanel):
+No harness na nuvem (EasyPanel):
 
 ```env
 CRT_DATA_SOURCE=mt5
-MT5_PROVIDER_URL=https://mt5.seudominio.com
+MT5_PROVIDER_URL=https://mt5.fullscopetrade.com
 MT5_PROVIDER_API_KEY=changeme
 MT5_PROVIDER_TIMEOUT_MS=60000
 ```
@@ -106,10 +124,15 @@ Harness → gateway.cloud (auth) → túnel → MT5 provider local
 
 ## Segurança obrigatória
 
+Ver checklist completo em **[docs/SECURITY.md](SECURITY.md)** e referência API em **[docs/API.md](API.md)**.
+
 | Medida | Config |
 |--------|--------|
 | API Key por harness | `MT5_API_KEYS=harness-crt:secret1,harness-bot:secret2` |
 | HTTPS | Túnel Cloudflare ou certificado no proxy |
+| Bind local | `MT5_HOST=127.0.0.1` (túnel na frente) |
+| Docs desativados | `MT5_DOCS_ENABLED=false` em produção |
+| Erros genéricos | `MT5_DEBUG_ERRORS=false` |
 | Não expor MT5 terminal | Só a API `:8000`, nunca RDP aberto à internet sem VPN |
 | Timeout cloud | `MT5_PROVIDER_TIMEOUT_MS=60000` (backtests grandes) |
 

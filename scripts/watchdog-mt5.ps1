@@ -74,12 +74,19 @@ function Start-Terminal([string]$TerminalPath) {
     return (Test-TerminalRunning $TerminalPath)
 }
 
-function Test-ProviderHealth([string]$BaseUrl, [int]$TimeoutSec = 5) {
+function Test-ProviderHealth([string]$BaseUrl, [int]$TimeoutSec = 5, [string]$ApiKey = "") {
     try {
         $r = Invoke-RestMethod -Uri "$BaseUrl/health" -TimeoutSec $TimeoutSec
+        $mode = "unknown"
+        if ($ApiKey) {
+            try {
+                $st = Invoke-RestMethod -Uri "$BaseUrl/v1/status" -Headers @{"X-API-Key" = $ApiKey} -TimeoutSec $TimeoutSec
+                $mode = $st.mode
+            } catch { $mode = "auth-fail" }
+        }
         return @{
             Ok = ($r.status -eq "ok")
-            Mode = $r.mode
+            Mode = $mode
             Body = $r
         }
     }
@@ -129,7 +136,7 @@ function Start-Provider([string]$Root, [string]$PythonExe) {
         -WorkingDirectory $Root `
         -WindowStyle Hidden | Out-Null
     Start-Sleep -Seconds 4
-    $health = Test-ProviderHealth $script:BaseUrl
+    $health = Test-ProviderHealth $script:BaseUrl 5 $script:ApiKey
     if ($health.Ok) {
         Write-Log "Provider reiniciado - mode=$($health.Mode)"
         return $true
@@ -141,7 +148,7 @@ function Start-Provider([string]$Root, [string]$PythonExe) {
 function Restart-ProviderIfHung() {
     $providerPid = Get-ProviderPid
     if (-not $providerPid) { return $false }
-    $health = Test-ProviderHealth $script:BaseUrl 3
+    $health = Test-ProviderHealth $script:BaseUrl 3 $script:ApiKey
     if ($health.Ok) { return $false }
     if ($DryRun) {
         Write-Log "[DryRun] Mataria provider hung PID $providerPid" "WARN"
@@ -158,7 +165,7 @@ function Invoke-WatchdogOnce() {
     $script:Port = if ($env["MT5_PORT"]) { [int]$env["MT5_PORT"] } else { 8000 }
     $script:BaseUrl = "http://localhost:$($script:Port)"
     $terminalPath = $env["MT5_PATH"]
-    $apiKey = ($env["MT5_API_KEYS"] -split "," | Select-Object -First 1) -replace "^[^:]+:", ""
+    $script:ApiKey = ($env["MT5_API_KEYS"] -split "," | Select-Object -First 1) -replace "^[^:]+:", ""
 
     Write-Log "=== Watchdog check ==="
 
@@ -182,7 +189,7 @@ function Invoke-WatchdogOnce() {
 
     # 2) Provider API
     if (-not $StatusOnly) { Restart-ProviderIfHung | Out-Null }
-    $health = Test-ProviderHealth $script:BaseUrl
+    $health = Test-ProviderHealth $script:BaseUrl 5 $script:ApiKey
     if ($health.Ok -and $health.Mode -eq "live") {
         Write-Log "Provider API: OK (live)"
     }
@@ -190,13 +197,13 @@ function Invoke-WatchdogOnce() {
         Write-Log "Provider API: $($health.Mode) - $($health.Error)" "WARN"
         if (-not $StatusOnly -and $terminalUp) {
             Start-Provider $root $python | Out-Null
-            $health = Test-ProviderHealth $script:BaseUrl
+            $health = Test-ProviderHealth $script:BaseUrl 5 $script:ApiKey
         }
     }
 
     # 3) Dados reais (ticker)
     if ($health.Ok) {
-        $data = Test-ProviderData $script:BaseUrl $apiKey
+        $data = Test-ProviderData $script:BaseUrl $script:ApiKey
         if ($data.Ok) {
             Write-Log "Dados MT5: OK $($data.Symbol) bid=$($data.Bid)"
         }
