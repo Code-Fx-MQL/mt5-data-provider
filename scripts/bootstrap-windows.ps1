@@ -142,6 +142,7 @@ if (-not $SkipTasks) {
 # 9) Cloudflare (se config importada)
 if (-not $SkipCloudflare) {
     $cfConfig = Join-Path $env:USERPROFILE ".cloudflared\config.yml"
+    & powershell -NoProfile -File (Join-Path $scriptsDir "install-cloudflared.ps1") -Quiet
     if (Test-Path $cfConfig) {
         Write-Host "Config Cloudflare encontrada - watchdog de tunel ativo via tarefa." -ForegroundColor Green
     } else {

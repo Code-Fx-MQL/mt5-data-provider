@@ -82,7 +82,15 @@ function Test-ProviderHealth([string]$BaseUrl, [int]$TimeoutSec = 5, [string]$Ap
             try {
                 $st = Invoke-RestMethod -Uri "$BaseUrl/v1/status" -Headers @{"X-API-Key" = $ApiKey} -TimeoutSec $TimeoutSec
                 $mode = $st.mode
-            } catch { $mode = "auth-fail" }
+            }
+            catch {
+                # /v1/status pode falhar no arranque; ticker confirma auth + live
+                try {
+                    $tk = Invoke-RestMethod -Uri "$BaseUrl/v1/ticker/GBPUSD" -Headers @{"X-API-Key" = $ApiKey} -TimeoutSec $TimeoutSec
+                    if ($tk.source -eq "mt5") { $mode = "live" } else { $mode = "auth-fail" }
+                }
+                catch { $mode = "auth-fail" }
+            }
         }
         return @{
             Ok = ($r.status -eq "ok")
@@ -163,7 +171,7 @@ function Restart-ProviderIfHung() {
 function Invoke-WatchdogOnce() {
     $env = Read-DotEnv $EnvFile
     $script:Port = if ($env["MT5_PORT"]) { [int]$env["MT5_PORT"] } else { 8000 }
-    $script:BaseUrl = "http://localhost:$($script:Port)"
+    $script:BaseUrl = "http://127.0.0.1:$($script:Port)"
     $terminalPath = $env["MT5_PATH"]
     $script:ApiKey = ($env["MT5_API_KEYS"] -split "," | Select-Object -First 1) -replace "^[^:]+:", ""
 

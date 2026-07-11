@@ -41,8 +41,16 @@ function Write-Log([string]$Message, [string]$Level = "INFO") {
 function Get-CloudflaredPath {
     $cmd = Get-Command cloudflared -ErrorAction SilentlyContinue
     if ($cmd) { return $cmd.Source }
-    $winget = Get-ChildItem -Path "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Filter "cloudflared.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($winget) { return $winget.FullName }
+    $roots = @(
+        "$env:LOCALAPPDATA\Microsoft\WinGet\Packages",
+        "${env:ProgramFiles}\Cloudflare",
+        "${env:ProgramFiles(x86)}\Cloudflare"
+    )
+    foreach ($root in $roots) {
+        if (-not (Test-Path $root)) { continue }
+        $hit = Get-ChildItem $root -Filter "cloudflared.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($hit) { return $hit.FullName }
+    }
     return $null
 }
 
@@ -57,7 +65,7 @@ function Test-TunnelHealthy {
 
 $cf = Get-CloudflaredPath
 if (-not $cf) {
-    Write-Log "cloudflared nao encontrado" "ERROR"
+    Write-Log "cloudflared nao encontrado - execute: .\scripts\install-cloudflared.ps1" "ERROR"
     exit 1
 }
 
