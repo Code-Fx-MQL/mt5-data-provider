@@ -41,14 +41,16 @@ function Write-Log([string]$Message, [string]$Level = "INFO") {
 function Get-CloudflaredPath {
     $cmd = Get-Command cloudflared -ErrorAction SilentlyContinue
     if ($cmd) { return $cmd.Source }
+    $localBin = Join-Path $root "tools\cloudflared.exe"
+    if (Test-Path $localBin) { return $localBin }
     $roots = @(
         "$env:LOCALAPPDATA\Microsoft\WinGet\Packages",
         "${env:ProgramFiles}\Cloudflare",
         "${env:ProgramFiles(x86)}\Cloudflare"
     )
-    foreach ($root in $roots) {
-        if (-not (Test-Path $root)) { continue }
-        $hit = Get-ChildItem $root -Filter "cloudflared.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    foreach ($searchRoot in $roots) {
+        if (-not (Test-Path $searchRoot)) { continue }
+        $hit = Get-ChildItem $searchRoot -Filter "cloudflared.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
         if ($hit) { return $hit.FullName }
     }
     return $null

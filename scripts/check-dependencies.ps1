@@ -71,12 +71,19 @@ if (-not $cf) {
     if ($wingetCf) { $cf = $wingetCf }
 }
 $cfOk = $null -ne $cf
-Report "cloudflared (tunel HTTPS)" $cfOk $(if ($cf) { $cf.Source } else { "opcional para acesso remoto" }) "winget install Cloudflare.cloudflared"
+$localCf = Join-Path (Split-Path $PSScriptRoot -Parent) "tools\cloudflared.exe"
+if (-not $cfOk -and (Test-Path $localCf)) { $cfOk = $true; $cf = Get-Item $localCf }
+$cfDetail = if ($cf) { if ($cf.FullName) { $cf.FullName } else { $cf.Source } } else { "opcional para acesso remoto" }
+Report "cloudflared (tunel HTTPS)" $cfOk $cfDetail ".\scripts\install-cloudflared.ps1"
 
 if (-not $cfOk -and $InstallMissing) {
-    winget install Cloudflare.cloudflared --accept-package-agreements --accept-source-agreements -e -h 2>$null
-    $cf = Get-Command cloudflared -ErrorAction SilentlyContinue
-    $cfOk = $null -ne $cf
+    & (Join-Path $PSScriptRoot "install-cloudflared.ps1") -Quiet
+    $localCf = Join-Path (Split-Path $PSScriptRoot -Parent) "tools\cloudflared.exe"
+    if (Test-Path $localCf) { $cfOk = $true }
+    else {
+        $cf = Get-Command cloudflared -ErrorAction SilentlyContinue
+        $cfOk = $null -ne $cf
+    }
 }
 
 # Porta 8000 livre ou provider ja ativo
