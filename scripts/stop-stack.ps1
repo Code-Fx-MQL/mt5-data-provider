@@ -7,11 +7,12 @@ $ErrorActionPreference = "Continue"
 Write-Host "=== A parar stack MT5 Data Provider ===" -ForegroundColor Cyan
 
 if (-not $KeepTasks) {
-    foreach ($name in @("MT5-DataProvider-Watchdog", "MT5-Cloudflare-Tunnel")) {
+    foreach ($name in @("MT5-DataProvider-Watchdog", "MT5-Cloudflare-Tunnel", "CRT-Agent-Scan")) {
         $t = Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue
         if ($t) {
             Disable-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue | Out-Null
-            Write-Host "Tarefa desactivada: $name" -ForegroundColor Yellow
+            Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction SilentlyContinue
+            Write-Host "Tarefa removida: $name" -ForegroundColor Yellow
         }
     }
 }
